@@ -10,8 +10,15 @@ const PHONE_NUMBER_ID = process.env.PHONE_NUMBER_ID;
 const MY_NUMBER = process.env.MY_NUMBER;
 
 // root
-app.get("/", (req, res) => {
-  res.send("Bot aktif");
+app.get("/webhook", (req, res) => {
+  const token = req.query["hub.verify_token"];
+  const challenge = req.query["hub.challenge"];
+
+  if (token === "test123") {
+    return res.status(200).send(challenge);
+  }
+
+  return res.status(403).send("Forbidden");
 });
 
 // webhook verify
