@@ -10,15 +10,20 @@ const PHONE_NUMBER_ID = process.env.PHONE_NUMBER_ID;
 const MY_NUMBER = process.env.MY_NUMBER;
 
 app.get("/webhook", (req, res) => {
+
   const mode = req.query["hub.mode"];
   const token = req.query["hub.verify_token"];
   const challenge = req.query["hub.challenge"];
 
-  if (mode === "subscribe" && token === VERIFY_TOKEN) {
+  console.log("MODE:", mode);
+  console.log("TOKEN:", token);
+  console.log("VERIFY_TOKEN:", VERIFY_TOKEN);
+
+  if (mode && token == VERIFY_TOKEN) {
     return res.status(200).send(challenge);
   }
 
-  res.sendStatus(403);
+  return res.status(403).send("Forbidden");
 });
 
 app.post("/webhook", async (req, res) => {
