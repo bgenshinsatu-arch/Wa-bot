@@ -1,68 +1,66 @@
 const express = require("express");
 const axios = require("axios");
+const { GoogleGenerativeAI } = require("@google/generative-ai");
 
 const app = express();
 app.use(express.json());
 
+const VERIFY_TOKEN = process.env.VERIFY_TOKEN;
 const WA_TOKEN = process.env.WA_TOKEN;
 const PHONE_NUMBER_ID = process.env.PHONE_NUMBER_ID;
 const MY_NUMBER = process.env.MY_NUMBER;
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
-app.get("/", (req, res) => {
-  res.send("Bot aktif");
-});
+const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
 
 app.get("/webhook", (req, res) => {
+  const mode = req.query["hub.mode"];
   const token = req.query["hub.verify_token"];
   const challenge = req.query["hub.challenge"];
 
-  if (token === "test123") {
+  if (mode && token === VERIFY_TOKEN) {
     return res.status(200).send(challenge);
   }
 
-  return res.status(403).send("Forbidden");
+  res.sendStatus(403);
 });
 
 app.post("/webhook", async (req, res) => {
   try {
-    const msg = req.body.entry?.[0]?.changes?.[0]?.value?.messages?.[0];
+    const msg =
+      req.body.entry?.[0]?.changes?.[0]?.value?.messages?.[0];
 
     if (!msg) return res.sendStatus(200);
 
     const from = msg.from;
     const text = msg.text?.body || "";
 
-    console.log("FROM:", from);
-    console.log("MY:", MY_NUMBER);
-    console.log("TEXT:", text);
-
     if (from !== MY_NUMBER) {
-      console.log("Nomor tidak cocok, tidak dibalas");
       return res.sendStatus(200);
     }
 
-    let reply = "gw gatau mo jawab apa 😭";
-    const lower = text.toLowerCase();
+    console.log("TEXT:", text);
 
-    if (lower.includes("halo")) {
-      reply = "halo juga";
-    } else if (lower.includes("apa kabar")) {
-      reply = "baik kok";
-    } else if (lower.includes("siapa")) {
-      reply = "gw bot whatsapp 😎";
-    }
+    const model = genAI.getGenerativeModel({
+      model: "gemini-1.5-flash",
+    });
+
+    const result = await model.generateContent(
+      `Balas chat WhatsApp ini seperti cewek anime yang natural, santai, pendek, lucu, dan tidak terlalu formal.
+
+Pesan user: "${text}"`
+    );
+
+    const reply = result.response.text();
 
     console.log("REPLY:", reply);
 
-    const send = await axios.post(
-      `https://graph.facebook.com/v25.0/${PHONE_NUMBER_ID}/messages`,
+    await axios.post(
+      `https://graph.facebook.com/v22.0/${PHONE_NUMBER_ID}/messages`,
       {
         messaging_product: "whatsapp",
-        recipient_type: "individual",
         to: from,
-        type: "text",
         text: {
-          preview_url: false,
           body: reply,
         },
       },
@@ -74,11 +72,9 @@ app.post("/webhook", async (req, res) => {
       }
     );
 
-    console.log("SEND RESULT:", send.data);
-
     res.sendStatus(200);
   } catch (err) {
-    console.log("ERROR:", err.response?.data || err.message);
+    console.log(err.response?.data || err.message);
     res.sendStatus(500);
   }
 });
