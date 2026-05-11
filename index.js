@@ -4,12 +4,16 @@ const axios = require("axios");
 const app = express();
 app.use(express.json());
 
-const VERIFY_TOKEN = process.env.VERIFY_TOKEN;
 const WA_TOKEN = process.env.WA_TOKEN;
 const PHONE_NUMBER_ID = process.env.PHONE_NUMBER_ID;
 const MY_NUMBER = process.env.MY_NUMBER;
 
 // root
+app.get("/", (req, res) => {
+  res.send("Bot aktif");
+});
+
+// webhook verify
 app.get("/webhook", (req, res) => {
   const token = req.query["hub.verify_token"];
   const challenge = req.query["hub.challenge"];
@@ -19,25 +23,6 @@ app.get("/webhook", (req, res) => {
   }
 
   return res.status(403).send("Forbidden");
-});
-
-// webhook verify
-app.get("/webhook", (req, res) => {
-  const mode = req.query["hub.mode"];
-  const token = req.query["hub.verify_token"];
-  const challenge = req.query["hub.challenge"];
-
-  console.log("MODE:", mode);
-  console.log("TOKEN:", token);
-  console.log("VERIFY:", VERIFY_TOKEN);
-
-  if (mode && token) {
-    if (mode === "subscribe" && token.trim() === VERIFY_TOKEN.trim()) {
-      return res.status(200).send(challenge);
-    }
-  }
-
-  return res.sendStatus(403);
 });
 
 // webhook message
@@ -51,7 +36,7 @@ app.post("/webhook", async (req, res) => {
     const from = msg.from;
     const text = msg.text?.body || "";
 
-    // balas nomor tertentu aja
+    // cuma balas nomor tertentu
     if (from !== MY_NUMBER) {
       return res.sendStatus(200);
     }
@@ -64,10 +49,8 @@ app.post("/webhook", async (req, res) => {
       reply = "halo juga";
     } else if (lower.includes("apa kabar")) {
       reply = "baik kok";
-    } else if (lower.includes("lagi apa")) {
-      reply = "lagi nemenin lu";
     } else if (lower.includes("siapa")) {
-      reply = "gw bot whatsapp";
+      reply = "gw bot whatsapp 😎";
     }
 
     await axios.post(
