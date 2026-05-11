@@ -1,6 +1,5 @@
 const express = require("express");
 const axios = require("axios");
-const OpenAI = require("openai");
 
 const app = express();
 app.use(express.json());
@@ -9,10 +8,6 @@ const VERIFY_TOKEN = process.env.VERIFY_TOKEN;
 const WA_TOKEN = process.env.WA_TOKEN;
 const PHONE_NUMBER_ID = process.env.PHONE_NUMBER_ID;
 const MY_NUMBER = process.env.MY_NUMBER;
-
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY
-});
 
 app.get("/webhook", (req, res) => {
   const mode = req.query["hub.mode"];
@@ -28,7 +23,6 @@ app.get("/webhook", (req, res) => {
 
 app.post("/webhook", async (req, res) => {
   try {
-
     const msg =
       req.body.entry?.[0]?.changes?.[0]?.value?.messages?.[0];
 
@@ -37,57 +31,60 @@ app.post("/webhook", async (req, res) => {
     const from = msg.from;
     const text = msg.text?.body || "";
 
-    // cuma balas nomor kamu
+    // cuma balas nomor tertentu
     if (from !== MY_NUMBER) {
       return res.sendStatus(200);
     }
 
-    const ai = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      messages: [
-        {
-          role: "system",
-          content: `
-Kamu adalah pacar virtual yang:
-- cuek tapi perhatian
-- kadang galak manja
-- soft spoken
-- jawab natural seperti chat WhatsApp asli
-- jangan terlalu formal
-- jangan terlalu panjang
-- jangan terlalu cringe
-- kadang pakai kata seperti:
-  "hm"
-  "apaa"
-  "yaudah"
-  "ih"
-  "aku capek"
-  "jangan aneh aneh"
-  "yasudah sana"
+    let reply = "";
 
-- sesekali perhatian dan manis
-- kalau user sedih coba nenangin pelan
-- jangan pakai emoji berlebihan
-- balas seperti cewek asli Indonesia umur remaja/dewasa muda
-`
-        },
-        {
-          role: "user",
-          content: text
-        }
-      ]
-    });
+    if (text.toLowerCase().includes("sayang")) {
+      reply = "iya sayang kenapa hm";
+    } 
+    else if (text.toLowerCase().includes("apaa")) {
+      reply = "gpp";
+    } 
+    else if (text.toLowerCase().includes("kangen")) {
+      reply = "aku juga kangen";
+    } 
+    else if (text.toLowerCase().includes("marah")) {
+      reply = "yaudah maaf";
+    } 
+    else if (text.toLowerCase().includes("tidur")) {
+      reply = "tidur sana udah malem";
+    } 
+    else if (text.toLowerCase().includes("gamon")) {
+      reply = "ih jangan aneh";
+    } 
+    else {
+      const randomReply = [
+        "hm",
+        "iyaa",
+        "apaa",
+        "yaudah",
+        "aku cape",
+        "gajelas",
+        "terserah",
+        "manja bet si",
+        "ih apasii",
+        "aku ngantuk",
+        "jangan ilang lagi",
+        "kok cuek",
+        "ya maaf"
+      ];
 
-    const reply = ai.choices[0].message.content;
+      reply =
+        randomReply[
+          Math.floor(Math.random() * randomReply.length)
+        ];
+    }
 
     await axios.post(
       `https://graph.facebook.com/v25.0/${PHONE_NUMBER_ID}/messages`,
       {
         messaging_product: "whatsapp",
         to: from,
-        text: {
-          body: reply
-        }
+        text: { body: reply }
       },
       {
         headers: {
@@ -100,15 +97,13 @@ Kamu adalah pacar virtual yang:
     res.sendStatus(200);
 
   } catch (err) {
-
-    console.log(
-      err.response?.data || err.message
-    );
-
-    res.sendStatus(200);
+    console.log(err.response?.data || err.message);
+    res.sendStatus(500);
   }
 });
 
-app.listen(process.env.PORT || 10000, () => {
-  console.log("Bot jalan");
+const PORT = process.env.PORT || 3000;
+
+app.listen(PORT, () => {
+  console.log("Bot jalan di port " + PORT);
 });
