@@ -8,12 +8,10 @@ const WA_TOKEN = process.env.WA_TOKEN;
 const PHONE_NUMBER_ID = process.env.PHONE_NUMBER_ID;
 const MY_NUMBER = process.env.MY_NUMBER;
 
-// root
 app.get("/", (req, res) => {
   res.send("Bot aktif");
 });
 
-// webhook verify
 app.get("/webhook", (req, res) => {
   const token = req.query["hub.verify_token"];
   const challenge = req.query["hub.challenge"];
@@ -25,24 +23,25 @@ app.get("/webhook", (req, res) => {
   return res.status(403).send("Forbidden");
 });
 
-// webhook message
 app.post("/webhook", async (req, res) => {
   try {
-    const msg =
-      req.body.entry?.[0]?.changes?.[0]?.value?.messages?.[0];
+    const msg = req.body.entry?.[0]?.changes?.[0]?.value?.messages?.[0];
 
     if (!msg) return res.sendStatus(200);
 
     const from = msg.from;
     const text = msg.text?.body || "";
 
-    // cuma balas nomor tertentu
+    console.log("FROM:", from);
+    console.log("MY:", MY_NUMBER);
+    console.log("TEXT:", text);
+
     if (from !== MY_NUMBER) {
+      console.log("Nomor tidak cocok, tidak dibalas");
       return res.sendStatus(200);
     }
 
     let reply = "gw gatau mo jawab apa 😭";
-
     const lower = text.toLowerCase();
 
     if (lower.includes("halo")) {
@@ -52,18 +51,18 @@ app.post("/webhook", async (req, res) => {
     } else if (lower.includes("siapa")) {
       reply = "gw bot whatsapp 😎";
     }
-    console.log("FROM:", from);
-console.log("MY:", MY_NUMBER);
-console.log("TEXT:", text);
-console.log("REPLY:", reply);
 
-    await axios.post(
-      `https://graph.facebook.com/v22.0/${PHONE_NUMBER_ID}/messages`,
+    console.log("REPLY:", reply);
+
+    const send = await axios.post(
+      `https://graph.facebook.com/v25.0/${PHONE_NUMBER_ID}/messages`,
       {
         messaging_product: "whatsapp",
+        recipient_type: "individual",
         to: from,
         type: "text",
         text: {
+          preview_url: false,
           body: reply,
         },
       },
@@ -75,9 +74,11 @@ console.log("REPLY:", reply);
       }
     );
 
+    console.log("SEND RESULT:", send.data);
+
     res.sendStatus(200);
   } catch (err) {
-    console.log(err.response?.data || err.message);
+    console.log("ERROR:", err.response?.data || err.message);
     res.sendStatus(500);
   }
 });
