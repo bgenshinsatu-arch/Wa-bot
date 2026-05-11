@@ -62,6 +62,7 @@ console.log("REPLY:", reply);
       {
         messaging_product: "whatsapp",
         to: from,
+        type: "text",
         text: {
           body: reply,
         },
