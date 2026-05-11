@@ -52,6 +52,10 @@ app.post("/webhook", async (req, res) => {
     } else if (lower.includes("siapa")) {
       reply = "gw bot whatsapp 😎";
     }
+    console.log("FROM:", from);
+console.log("MY:", MY_NUMBER);
+console.log("TEXT:", text);
+console.log("REPLY:", reply);
 
     await axios.post(
       `https://graph.facebook.com/v22.0/${PHONE_NUMBER_ID}/messages`,
